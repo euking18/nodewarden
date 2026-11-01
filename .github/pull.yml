@@ -1,0 +1,7 @@
+# Scheduled updates are handled by .github/workflows/sync-upstream.yml.
+# If Pull resumes service, only open PRs; never hard-reset this fork.
+version: "1"
+rules:
+  - base: main
+    upstream: "shuaiplus:main"
+    mergeMethod: none
