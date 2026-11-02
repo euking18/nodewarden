@@ -2,8 +2,8 @@ name: Sync upstream
 
 on:
   schedule:
-    # Every 6 hours, at 02:17 / 08:17 / 14:17 / 20:17 Asia/Shanghai.
-    - cron: '17 */6 * * *'
+    # Daily trigger at 08:17 Asia/Shanghai; the gate below checks upstream every 48 hours.
+    - cron: '17 0 * * *'
   workflow_dispatch:
 
 permissions: {}
@@ -26,6 +26,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "schedule" ]]; then
+            epoch_day=$(( $(date -u +%s) / 86400 ))
+            anchor_day=20759 # 2026-11-02 UTC
+            if (( epoch_day <= anchor_day || (epoch_day - anchor_day) % 2 != 0 )); then
+              {
+                echo '## Upstream sync'
+                echo 'Skipped: today is outside the 48-hour synchronization cycle.'
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+          fi
           if ! gh api --method POST "repos/${GITHUB_REPOSITORY}/merge-upstream" \
             -f branch=main > "$RUNNER_TEMP/upstream-sync.json"; then
             echo "::error::Upstream sync failed. Resolve merge conflicts or use Sync fork manually if upstream workflow changes require additional authorization."
